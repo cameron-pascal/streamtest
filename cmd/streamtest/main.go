@@ -61,6 +61,8 @@ func main() {
 
 	if *clientPortPtr == -1 {
 		handleInputError("port must be specified")
+	} else if *clientPortPtr < 0 || *clientPortPtr > 65535 {
+		handleInputError("port number out of range")
 	}
 
 	optionsPtr := streamtest.ClientOptions{
