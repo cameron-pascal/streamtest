@@ -11,7 +11,12 @@ import (
 
 func startServer(port uint16, protocol string) {
 	server := new(streamtest.StreamServer)
-	server.Start(port, protocol)
+	fmt.Printf("starting %s on %d\n", protocol, port)
+	err := server.Start(port, protocol)
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 }
 
 func main() {

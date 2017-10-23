@@ -7,9 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"time"
 )
 
-const dataTransferSize uint32 = 1000000000 // 1 GB
+const dataTransferSize uint32 = 100000000 //0 // 1 GB
 
 // ClientOptions Options when setting up a streamtest client
 type ClientOptions struct {
@@ -18,6 +19,12 @@ type ClientOptions struct {
 	NetworkProtocol string
 	AckProtocol     AckProtocol
 	MessageSize     uint32
+}
+
+type ClientResult struct {
+	PacketsSent uint32
+	BytesSent   uint32
+	Duration    int64
 }
 
 // StreamClient The streamtest client
@@ -48,10 +55,9 @@ func (client *StreamClient) Connect() error {
 }
 
 // Start Begins a streamtest transfer
-func (client *StreamClient) Start() error {
-
+func (client *StreamClient) Start() (*ClientResult, error) {
 	if client.conn == nil {
-		return errors.New("Client must be connected first")
+		return nil, errors.New("Client must be connected first")
 	}
 
 	preambleMessage := preambleMessage{
@@ -66,7 +72,7 @@ func (client *StreamClient) Start() error {
 	preambleBuffer.WriteByte(eot)
 
 	if marshalErr != nil {
-		return marshalErr
+		return nil, marshalErr
 	}
 
 	conn := *client.conn
@@ -74,7 +80,7 @@ func (client *StreamClient) Start() error {
 	_, txErr := conn.Write(preambleBuffer.Bytes())
 
 	if txErr != nil {
-		return txErr
+		return nil, txErr
 	}
 
 	reader := bufio.NewReader(conn)
@@ -82,18 +88,89 @@ func (client *StreamClient) Start() error {
 	preambleResponse, rxErr := reader.ReadByte()
 
 	if rxErr != nil {
-		return rxErr
+		return nil, rxErr
 	}
 
 	if uint8(preambleResponse) != ackMessage {
-		return errors.New("server did not acknowledge preamble")
+		return nil, errors.New("server did not acknowledge preamble")
 	}
 
 	return client.transfer()
 }
 
-func (client *StreamClient) transfer() error {
+func (client *StreamClient) streamingUpload() (*ClientResult, error) {
+	conn := *client.conn
+	var byteCount uint32
+	var packetCount uint32
+	buf := make([]byte, client.options.MessageSize)
+
+	start := time.Now()
+	for byteCount < dataTransferSize {
+		conn.Write(buf)
+		byteCount += uint32(len(buf))
+		packetCount++
+	}
+
+	elapsed := time.Since(start)
+
+	conn.Close()
+
+	result := ClientResult{
+		BytesSent:   byteCount,
+		PacketsSent: packetCount,
+		Duration:    elapsed.Nanoseconds()}
+
+	return &result, nil
+}
+
+func (client *StreamClient) stopWaitUpload() (*ClientResult, error) {
+	conn := *client.conn
+
+	buf := make([]byte, client.options.MessageSize)
+	ackBuf := make([]byte, 1)
+
+	var byteCount uint32
+	var packetCount uint32
+	start := time.Now()
+
+	for byteCount < dataTransferSize {
+		conn.Write(buf)
+		byteCount += uint32(len(buf))
+
+		n, err := conn.Read(ackBuf)
+		if n >= 1 && ackBuf[0] != ackMessage {
+			return nil, errors.New("server did not acknowledge last message")
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		packetCount++
+	}
+
+	elapsed := time.Since(start)
+
+	conn.Close()
+
+	result := ClientResult{
+		BytesSent:   byteCount,
+		PacketsSent: packetCount,
+		Duration:    elapsed.Nanoseconds()}
+
+	return &result, nil
+}
+
+func (client *StreamClient) transfer() (*ClientResult, error) {
 	fmt.Println("server acknowledged preamble")
 
-	return nil
+	if client.options.AckProtocol == Streaming {
+		return client.streamingUpload()
+	}
+
+	if client.options.AckProtocol == StopWait {
+		return client.stopWaitUpload()
+	}
+
+	return nil, nil
 }

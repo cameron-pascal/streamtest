@@ -13,6 +13,7 @@ func udpStreamingDownload(conn net.PacketConn, connAddr net.Addr, preamble *prea
 	buf := make([]byte, preamble.PayloadSize)
 
 	var totalBytesRead uint32
+	var packetCount uint32
 	for {
 		n, remoteAddr, err := conn.ReadFrom(buf)
 
@@ -30,9 +31,12 @@ func udpStreamingDownload(conn net.PacketConn, connAddr net.Addr, preamble *prea
 		if totalBytesRead >= preamble.DataTransferSize {
 			break
 		}
+
+		packetCount++
 	}
 
-	conn.Close()
+	fmt.Printf("streaming udp download from %s completed. %d packets recieved, %d total bytes recieved\n",
+		connAddr.String(), packetCount, totalBytesRead)
 
 	return nil
 }
@@ -41,6 +45,7 @@ func udpStopWaitDownload(conn net.PacketConn, connAddr net.Addr, preamble *pream
 	buf := make([]byte, preamble.PayloadSize)
 
 	var totalBytesRead uint32
+	var packetCount uint32
 	for {
 		n, remoteAddr, err := conn.ReadFrom(buf)
 		if connAddr.String() != remoteAddr.String() {
@@ -58,9 +63,12 @@ func udpStopWaitDownload(conn net.PacketConn, connAddr net.Addr, preamble *pream
 		if totalBytesRead >= preamble.DataTransferSize {
 			break
 		}
+
+		packetCount++
 	}
 
-	conn.Close()
+	fmt.Printf("stopwait udp download from %s completed. %d packets recieved, %d total bytes recieved\n",
+		connAddr.String(), packetCount, totalBytesRead)
 
 	return nil
 }
@@ -108,6 +116,7 @@ func tcpStreamingDownload(conn net.Conn, preamble *preambleMessage) error {
 	buf := make([]byte, preamble.PayloadSize)
 
 	var totalBytesRead uint32
+	var packetCount uint32
 	for {
 		n, err := conn.Read(buf)
 
@@ -120,9 +129,14 @@ func tcpStreamingDownload(conn net.Conn, preamble *preambleMessage) error {
 		if totalBytesRead >= preamble.DataTransferSize {
 			break
 		}
+
+		packetCount++
 	}
 
 	conn.Close()
+
+	fmt.Printf("streaming tcp download from %s completed. %d packets recieved, %d total bytes recieved\n",
+		conn.RemoteAddr().String(), packetCount, totalBytesRead)
 
 	return nil
 }
@@ -131,6 +145,7 @@ func tcpStopWaitDownload(conn net.Conn, preamble *preambleMessage) error {
 	buf := make([]byte, preamble.PayloadSize)
 
 	var totalBytesRead uint32
+	var packetCount uint32
 	for {
 		n, err := conn.Read(buf)
 
@@ -144,9 +159,14 @@ func tcpStopWaitDownload(conn net.Conn, preamble *preambleMessage) error {
 		if totalBytesRead >= preamble.DataTransferSize {
 			break
 		}
+
+		packetCount++
 	}
 
 	conn.Close()
+
+	fmt.Printf("stopwait tcp download from %s completed. %d packets recieved, %d total bytes recieved\n",
+		conn.RemoteAddr().String(), packetCount, totalBytesRead)
 
 	return nil
 }
@@ -221,9 +241,9 @@ func (server *StreamServer) Start(port uint16, protocol string) error {
 	portStr := fmt.Sprintf(":%d", int(port))
 
 	if protocol == "tcp" {
-		listenTCP(portStr)
+		return listenTCP(portStr)
 	} else if protocol == "udp" {
-		listenUDP(portStr)
+		return listenUDP(portStr)
 	}
 
 	return nil

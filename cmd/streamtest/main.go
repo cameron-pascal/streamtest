@@ -80,9 +80,12 @@ func main() {
 		handleClientError(connectErr)
 	}
 
-	transferErr := streamClient.Start()
+	result, transferErr := streamClient.Start()
 
 	if transferErr != nil {
 		handleClientError(transferErr)
 	}
+
+	fmt.Printf("upload completed\n")
+	fmt.Printf("packets sent: %d, bytes sent: %d, duration: %d\n", result.PacketsSent, result.BytesSent, result.Duration)
 }
