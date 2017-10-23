@@ -4,9 +4,15 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/cameronmaxwell/streamtest"
 )
+
+func startServer(port uint16, protocol string) {
+	server := new(streamtest.StreamServer)
+	server.Start(port, protocol)
+}
 
 func main() {
 	portPtr := flag.Int("port", int(streamtest.DefaultPort), "port to listen on {0-65535}")
@@ -19,12 +25,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	server := new(streamtest.StreamServer)
+	port := uint16(*portPtr)
 
-	serverErr := server.Start(uint16(*portPtr), "tcp")
+	var wg sync.WaitGroup
 
-	if serverErr != nil {
-		fmt.Println(serverErr.Error())
-		os.Exit(1)
-	}
+	wg.Add(2)
+	go startServer(port, "tcp")
+	go startServer(port, "udp")
+
+	wg.Wait()
 }

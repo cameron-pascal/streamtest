@@ -17,6 +17,7 @@ const DefaultPort uint16 = 5991
 type preambleMessage struct {
 	AckProtocol      AckProtocol
 	DataTransferSize uint32
+	PayloadSize      uint32
 }
 
 const ackMessage uint8 = 6

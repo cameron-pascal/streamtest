@@ -56,7 +56,8 @@ func (client *StreamClient) Start() error {
 
 	preambleMessage := preambleMessage{
 		AckProtocol:      client.options.AckProtocol,
-		DataTransferSize: dataTransferSize}
+		DataTransferSize: dataTransferSize,
+		PayloadSize:      client.options.MessageSize}
 
 	preambleJSON, marshalErr := json.Marshal(preambleMessage)
 
@@ -92,6 +93,7 @@ func (client *StreamClient) Start() error {
 }
 
 func (client *StreamClient) transfer() error {
+	fmt.Println("server acknowledged preamble")
 
 	return nil
 }
