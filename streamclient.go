@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const dataTransferSize uint32 = 100000000 //0 // 1 GB
+const dataTransferSize uint32 = 15000000 // 15 MB
 
 // ClientOptions Options when setting up a streamtest client
 type ClientOptions struct {
@@ -136,6 +136,7 @@ func (client *StreamClient) stopWaitUpload() (*ClientResult, error) {
 	for byteCount < dataTransferSize {
 		conn.Write(buf)
 		byteCount += uint32(len(buf))
+		packetCount++
 
 		n, err := conn.Read(ackBuf)
 		if n >= 1 && ackBuf[0] != ackMessage {
@@ -145,8 +146,6 @@ func (client *StreamClient) stopWaitUpload() (*ClientResult, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		packetCount++
 	}
 
 	elapsed := time.Since(start)

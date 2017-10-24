@@ -13,7 +13,7 @@ func udpStreamingDownload(conn net.PacketConn, connAddr net.Addr, preamble *prea
 	buf := make([]byte, preamble.PayloadSize)
 
 	var totalBytesRead uint32
-	var packetCount uint32
+	var packetCount uint32 = 1
 	for {
 		n, remoteAddr, err := conn.ReadFrom(buf)
 
@@ -27,12 +27,11 @@ func udpStreamingDownload(conn net.PacketConn, connAddr net.Addr, preamble *prea
 		}
 
 		totalBytesRead += uint32(n)
+		packetCount++
 
 		if totalBytesRead >= preamble.DataTransferSize {
 			break
 		}
-
-		packetCount++
 	}
 
 	fmt.Printf("streaming udp download from %s completed. %d packets recieved, %d total bytes recieved\n",
@@ -45,7 +44,7 @@ func udpStopWaitDownload(conn net.PacketConn, connAddr net.Addr, preamble *pream
 	buf := make([]byte, preamble.PayloadSize)
 
 	var totalBytesRead uint32
-	var packetCount uint32
+	var packetCount uint32 = 1
 	for {
 		n, remoteAddr, err := conn.ReadFrom(buf)
 		if connAddr.String() != remoteAddr.String() {
@@ -58,13 +57,13 @@ func udpStopWaitDownload(conn net.PacketConn, connAddr net.Addr, preamble *pream
 		}
 
 		totalBytesRead += uint32(n)
+		packetCount++
+
 		conn.WriteTo([]byte{ackMessage}, connAddr)
 
 		if totalBytesRead >= preamble.DataTransferSize {
 			break
 		}
-
-		packetCount++
 	}
 
 	fmt.Printf("stopwait udp download from %s completed. %d packets recieved, %d total bytes recieved\n",
@@ -116,7 +115,7 @@ func tcpStreamingDownload(conn net.Conn, preamble *preambleMessage) error {
 	buf := make([]byte, preamble.PayloadSize)
 
 	var totalBytesRead uint32
-	var packetCount uint32
+	var packetCount uint32 = 1
 	for {
 		n, err := conn.Read(buf)
 
@@ -125,12 +124,11 @@ func tcpStreamingDownload(conn net.Conn, preamble *preambleMessage) error {
 		}
 
 		totalBytesRead += uint32(n)
+		packetCount++
 
 		if totalBytesRead >= preamble.DataTransferSize {
 			break
 		}
-
-		packetCount++
 	}
 
 	conn.Close()
@@ -145,7 +143,7 @@ func tcpStopWaitDownload(conn net.Conn, preamble *preambleMessage) error {
 	buf := make([]byte, preamble.PayloadSize)
 
 	var totalBytesRead uint32
-	var packetCount uint32
+	var packetCount uint32 = 1
 	for {
 		n, err := conn.Read(buf)
 
@@ -154,13 +152,13 @@ func tcpStopWaitDownload(conn net.Conn, preamble *preambleMessage) error {
 		}
 
 		totalBytesRead += uint32(n)
+		packetCount++
+
 		conn.Write([]byte{ackMessage})
 
 		if totalBytesRead >= preamble.DataTransferSize {
 			break
 		}
-
-		packetCount++
 	}
 
 	conn.Close()
