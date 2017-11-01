@@ -20,6 +20,7 @@ type preambleMessage struct {
 	PayloadSize      uint32
 }
 
-const ackMessage uint8 = 6
-
-const eot uint8 = 4
+const (
+	ackMessage uint8 = 6
+	eot        uint8 = 4
+)

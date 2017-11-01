@@ -10,7 +10,10 @@ import (
 	"time"
 )
 
-const dataTransferSize uint32 = 15000000 // 15 MB
+const (
+	stopWaitTransferSize  uint32 = 10000   // 10KB
+	streamingTransferSize uint32 = 1000000 // 10 MB
+)
 
 // ClientOptions Options when setting up a streamtest client
 type ClientOptions struct {
@@ -60,6 +63,12 @@ func (client *StreamClient) Start() (*ClientResult, error) {
 		return nil, errors.New("Client must be connected first")
 	}
 
+	dataTransferSize := streamingTransferSize
+
+	if client.options.NetworkProtocol == "udp" {
+		dataTransferSize = stopWaitTransferSize
+	}
+
 	preambleMessage := preambleMessage{
 		AckProtocol:      client.options.AckProtocol,
 		DataTransferSize: dataTransferSize,
@@ -105,7 +114,7 @@ func (client *StreamClient) streamingUpload() (*ClientResult, error) {
 	buf := make([]byte, client.options.MessageSize)
 
 	start := time.Now()
-	for byteCount < dataTransferSize {
+	for byteCount < streamingTransferSize {
 		conn.Write(buf)
 		byteCount += uint32(len(buf))
 		packetCount++
@@ -133,7 +142,7 @@ func (client *StreamClient) stopWaitUpload() (*ClientResult, error) {
 	var packetCount uint32
 	start := time.Now()
 
-	for byteCount < dataTransferSize {
+	for byteCount < stopWaitTransferSize {
 		conn.Write(buf)
 		byteCount += uint32(len(buf))
 		packetCount++
